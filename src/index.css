@@ -10,3 +10,7 @@
   box-sizing: border-box;
   font-family: 'Noto Sans KR', sans-serif;
 }
+
+:root {
+  --toastify-color-success: #3478f6;
+}
