@@ -1,5 +1,6 @@
 const DateFormat = (date: string) => {
   const dateFormatting = new Date(date);
+
   const week = ['일', '월', '화', '수', '목', '금', '토'];
 
   const yyyy = dateFormatting.getFullYear();

@@ -3,67 +3,85 @@ import { getPost } from 'api/getPost';
 import Container from 'components/Container';
 import Loading from './Loading';
 import Error from './Error';
-import Star from 'assets/inactive/star.png';
-import DateFormat from 'libs/DateFormat';
+import { useEffect, useState } from 'react';
+import { toast } from 'react-toastify';
+import getFilter from 'libs/getFilter';
+import { filterProps } from './FilterModal';
+import PostList from './PostList';
+import ScrapePost from './ScrapePost';
 
-const Post = ({ query, filter = '' }: { query: string; filter?: string }) => {
-  const { isLoading, data, error } = useQuery<any[] | undefined>({
+const Post = ({ currentPage }: { currentPage: 'Home' | 'Scrape' }) => {
+  const [scrapeList, setScrapeList] = useState<string[]>([]);
+
+  const filter: filterProps | null | undefined = getFilter(currentPage);
+
+  const query = filter?.q ? filter?.q : '';
+  const period = filter?.period ? filter?.period : '';
+  const country = filter?.glocations ? filter?.glocations : '';
+
+  const { status, data, error } = useQuery<any[] | undefined>({
     queryKey: ['post'],
-    queryFn: () => getPost(query, filter),
+    queryFn: () =>
+      getPost(query, `pub_date=("${period}")`, `glocations=("${country}")`),
+    staleTime: 2000,
   });
+  console.log('🚀 ~ file: Post.tsx:27 ~ Post ~ data:', data);
 
-  if (error instanceof Error) {
-    return <Error error={error} />;
-  }
+  const handleClickStar = (id: string) => {
+    let updatedList;
+    if (scrapeList.includes(id)) {
+      updatedList = scrapeList.filter((list) => list !== id);
+      toast.success('스크랩이 해제되었습니다.');
+    } else {
+      updatedList = [...scrapeList, id];
+      toast.success('스크랩이 완료되었습니다.');
+    }
 
-  if (isLoading) return <Loading />;
+    localStorage.setItem('scrapeList', JSON.stringify(updatedList));
+    setScrapeList(updatedList);
+  };
+
+  useEffect(() => {
+    let isScrape = localStorage.getItem('scrapeList');
+    if (!isScrape) {
+      localStorage.setItem('scrapeList', JSON.stringify([]));
+      isScrape = localStorage.getItem('scrapeList');
+    }
+    isScrape && setScrapeList(JSON.parse(isScrape));
+  }, []);
+
+  if (status === 'error') return <Error error={error} />;
+
+  if (status === 'loading') return <Loading />;
 
   return (
-    <Container>
-      <ul className='w-full h-full flex flex-col gap-2 p-5 overflow-y-scroll scrollbar-hide'>
-        {data &&
-          data.map((post: any) => {
-            console.log('🚀 ~ file: Post.tsx:24 ~ Post ~ post:', post);
-            return (
+    <>
+      <Container>
+        <ul className='w-full h-full flex flex-col gap-2 p-5 flex-grow'>
+          {data &&
+            data.map((post: any) => (
               <li
                 key={post._id}
-                className='w-full bg-white rounded-lg px-5 py-[10px] cursor-pointer'
+                className='w-full bg-white rounded-lg px-5 py-[10px]'
               >
-                {/* title */}
-                <div className='flex justify-between'>
-                  <div className='w-[260px] h-14'>
-                    <p className='font-semibold text-lg'>
-                      {post.headline.main.length > 40
-                        ? post.headline.main.substring(0, 40) + '...'
-                        : post.headline.main}
-                    </p>
-                  </div>
-                  <div className='w-6 h-6 flex justify-center items-center cursor-pointer'>
-                    <img src={Star} alt='스크랩 저장 버튼 아이콘' />
-                  </div>
-                </div>
-
-                {/* author & date */}
-                <div className='flex justify-between pt-2 text-[13px] leading-5 '>
-                  <p>
-                    <span className='pr-2'>
-                      {post.source.length > 15
-                        ? post.source.substring(0, 7) + '...'
-                        : post.source}
-                    </span>
-                    <span>
-                      {post.byline.original.length > 2
-                        ? post.byline.original.substring(3)
-                        : post.byline.original}
-                    </span>
-                  </p>
-                  <p className='text-black-80'>{DateFormat(post.pub_date)}</p>
-                </div>
+                {post && currentPage === 'Scrape' ? (
+                  <ScrapePost
+                    post={post}
+                    scrapeList={scrapeList}
+                    handleClickStar={handleClickStar}
+                  />
+                ) : (
+                  <PostList
+                    post={post}
+                    scrapeList={scrapeList}
+                    handleClickStar={handleClickStar}
+                  />
+                )}
               </li>
-            );
-          })}
-      </ul>
-    </Container>
+            ))}
+        </ul>
+      </Container>
+    </>
   );
 };
 

@@ -12,7 +12,7 @@ const Header = ({
   currentPage: string;
 }) => {
   return (
-    <div className='rounded-[30px] bg-black absolute w-full bottom-0 px-20 py-5 flex justify-between'>
+    <div className='rounded-[30px] bg-black absolute z-20 w-full bottom-0 px-20 py-5 flex justify-between'>
       <HeaderIcon
         icon={HomeIcon}
         inactiveIcon={inactiveHomeIcon}
@@ -51,11 +51,10 @@ const HeaderIcon = ({
       onClick={() => handleChangePage(title)}
     >
       <div className='w-6 h-6 flex justify-center items-center mb-[9px]'>
-        {selected ? (
-          <img src={icon} alt={`${title} 버튼 이미지`} />
-        ) : (
-          <img src={inactiveIcon} alt={`${title} 버튼 이미지`} />
-        )}
+        <img
+          src={selected ? icon : inactiveIcon}
+          alt={`${title} 버튼 이미지`}
+        />
       </div>
       <p
         className={`text-[10px] leading-3 font-semibold text-center
