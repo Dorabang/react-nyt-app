@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React from 'react';
 import HomeIcon from 'assets/active/Home_Icon.png';
 import inactiveHomeIcon from 'assets/inactive/inactiveHome_Icon.png';
 import ScrapeIcon from 'assets/active/Scrape_Icon.png';
