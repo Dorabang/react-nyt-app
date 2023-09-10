@@ -47,7 +47,7 @@ function App() {
           currentPage={currentPage}
           setModalOpen={(e) => setModalOpen(e)}
         />
-        <Post currentPage={currentPage} />
+        <Post currentPage={currentPage} handleChangePage={handleChangePage} />
         <Header handleChangePage={handleChangePage} currentPage={currentPage} />
       </div>
     </div>
