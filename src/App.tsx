@@ -6,6 +6,7 @@ import FilterModal from 'components/FilterModal';
 import useOnClickOutside from 'hooks/useOnClickOutside';
 import ToastProvider from 'components/ToastProvider';
 import Post from 'components/Post';
+import { setItem } from 'libs/getStorageData';
 
 function App() {
   const [currentPage, setCurrentPage] = useState<'Home' | 'Scrape'>('Home');
@@ -23,7 +24,7 @@ function App() {
 
   useEffect(() => {
     /* routing */
-    localStorage.setItem('page', JSON.stringify(currentPage));
+    setItem('page', currentPage);
   }, [currentPage]);
 
   return (
