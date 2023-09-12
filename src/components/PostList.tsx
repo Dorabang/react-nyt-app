@@ -10,7 +10,7 @@ export interface PostListProps {
 
 const PostList = ({ post, scrapeList, handleClickStar }: PostListProps) => {
   return (
-    <li key={post._id} className='w-full bg-white rounded-lg px-5 py-[10px]'>
+    <li className='w-full bg-white rounded-lg px-5 py-[10px]'>
       {/* title */}
       <div className='flex justify-between'>
         <div className='w-[260px] h-14'>
