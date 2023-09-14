@@ -1,57 +1,26 @@
-import {
-  useQuery,
-  useInfiniteQuery,
-  useQueryClient,
-} from '@tanstack/react-query';
-import { getInfinitePost, getPost } from 'api/getPost';
+import { useInfiniteQuery, useQueryClient } from '@tanstack/react-query';
+import { getInfinitePost } from 'api/getPost';
 import { queryPostKey } from 'constants/QueryKey';
 
-export const useGetPost = (
-  query?: string | undefined,
-  period?: string | undefined,
-  glocations?: string[] | undefined,
-  page?: number | undefined
-) => {
-  const queryClient = useQueryClient();
-
-  return useQuery<any[] | undefined>({
-    queryKey: queryPostKey,
-    queryFn: () => getPost(query, period, glocations, page),
-    onSuccess: () => {
-      return queryClient.invalidateQueries({ queryKey: queryPostKey });
-    },
-  });
-};
-
 export const useGetInfinitePost = (
-  query?: string | undefined,
-  period?: string | undefined,
-  glocations?: string[] | undefined,
+  currentPage: 'Home' | 'Scrape',
   page: number = 0
 ) => {
   const queryClient = useQueryClient();
+
+  queryClient.invalidateQueries({ queryKey: queryPostKey });
+
   return useInfiniteQuery(
     queryPostKey,
-    ({ pageParam }) =>
-      getInfinitePost({
-        query: query,
-        period: period,
-        glocations: glocations,
-        page: page,
-      }),
+    ({ pageParam = 0 }) => getInfinitePost(currentPage, page),
     {
+      getNextPageParam: (lastPage) =>
+        lastPage?.meta?.offset > lastPage?.meta?.hits
+          ? undefined
+          : lastPage?.meta?.offset + 1,
+      staleTime: 1000 * 12,
       onSuccess: () =>
-        queryClient.invalidateQueries({ queryKey: queryPostKey }),
-      getNextPageParam: (lastPage, allPages) => {
-        console.log(
-          '🚀 ~ file: useGetPost.ts:46 ~ lastPage:',
-          lastPage?.meta?.offset
-        );
-        /* 
-        return lastPage.meta.offset < allPages[0].meta.hits
-          ? lastPage.meta.offset + 10
-          : allPages[0].meta.hits; */
-      },
+        queryClient.invalidateQueries({ queryKey: queryPostKey, exact: true }),
     }
   );
 };

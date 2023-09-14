@@ -1,19 +1,18 @@
 import React, { useMemo } from 'react';
+import { useEffect, useState } from 'react';
+import { toast } from 'react-toastify';
+import inactiveScrapeIcon from 'assets/inactive/inactiveScrape_Icon.png';
+import { useGetInfinitePost } from 'hooks/useGetPost';
+import { getItem, setItem } from 'libs/getStorageData';
+import { useInView } from 'react-intersection-observer';
+
+/* components */
+import ScrapePost from 'components/ScrapePost';
+import PostList from 'components/PostList';
+import Button from 'components/Button';
 import Container from 'components/Container';
 import Loading from 'components/Loading';
 import Error from 'components/Error';
-import { useEffect, useState } from 'react';
-import { toast } from 'react-toastify';
-import getFilter from 'libs/getFilter';
-import { filterProps } from 'components/FilterModal';
-import PostList from 'components/PostList';
-import ScrapePost from 'components/ScrapePost';
-import inactiveScrapeIcon from 'assets/inactive/inactiveScrape_Icon.png';
-import Button from 'components/Button';
-import useIntersection from 'hooks/useIntersection';
-import { useGetInfinitePost } from 'hooks/useGetPost';
-import { getItem, setItem } from 'libs/getStorageData';
-import { getPost } from 'api/getPost';
 
 const Post = ({
   currentPage,
@@ -26,44 +25,33 @@ const Post = ({
   const [scrapeList, setScrapeList] = useState<string[]>(isScrape);
   const [page, setPage] = useState<number>(0);
   console.log('🚀 ~ file: Post.tsx:27 ~ page:', page);
+  /* 
+  const { data, status, error } = useGetPost(currentPage, page);
+   */
 
-  const initFilter: filterProps | null | undefined = getFilter(currentPage);
+  const { data, status, error, hasNextPage, fetchNextPage } =
+    useGetInfinitePost(currentPage, page);
 
-  const [filter, setFilter] = useState(initFilter);
-
-  /* const { data, status, error } = useGetPost(
-    filter?.q,
-    filter?.period,
-    filter?.glocations,
-    page
-  ); */
-
-  const { hasNextPage, isFetching, fetchNextPage, ...result } =
-    useGetInfinitePost(filter?.q, filter?.period, filter?.glocations, page);
-
-  console.log('🚀 ~ file: Post.tsx:42 ~ result:', result.data);
   const posts = useMemo(
-    () => (result.data ? result.data.pages.flatMap(({ docs }) => docs) : []),
-    [result.data]
+    () => (data ? data.pages.flatMap(({ docs }) => docs) : []),
+    [data]
   );
 
-  const ref = useIntersection((entry, observer) => {
-    observer.unobserve(entry.target);
-
-    setPage((prev) => prev + 1);
-  });
+  const [ref, inView] = useInView();
 
   useEffect(() => {
     if (isScrape === null) {
       setItem('scrapeList', []);
       setScrapeList(isScrape);
     }
+  }, [isScrape]);
 
-    if (filter !== initFilter) {
-      const updatedFilter = getFilter(currentPage);
-      return setFilter(updatedFilter);
+  useEffect(() => {
+    if (inView && hasNextPage) {
+      fetchNextPage();
+      setPage(page + 1);
     }
-  }, []);
+  }, [inView, hasNextPage]);
 
   const handleClickStar = (id: string) => {
     let updatedList;
@@ -79,9 +67,9 @@ const Post = ({
     setScrapeList(updatedList);
   };
 
-  if (result.status === 'error') return <Error error={result.error} />;
+  if (status === 'error') return <Error error={error} />;
 
-  if (result.status === 'loading') return <Loading />;
+  if (status === 'loading') return <Loading />;
 
   if (currentPage === 'Scrape' && scrapeList.length === 0)
     return (
@@ -100,7 +88,7 @@ const Post = ({
       </Container>
     );
 
-  if (!result.data)
+  if (!data)
     return (
       <Container>
         <div className='w-full h-full p-5 flex-grow flex justify-center items-center'>
@@ -114,25 +102,24 @@ const Post = ({
       <Container>
         <div className='flex justify-center items-center'>
           <ul className='w-full h-full flex flex-col gap-2 p-5 flex-grow'>
-            {result.status === 'success' &&
-              posts.map((post: any) => (
-                <React.Fragment key={post._id}>
-                  {post && currentPage === 'Scrape' ? (
-                    <ScrapePost
-                      post={post}
-                      scrapeList={scrapeList}
-                      handleClickStar={handleClickStar}
-                    />
-                  ) : (
-                    <PostList
-                      post={post}
-                      scrapeList={scrapeList}
-                      handleClickStar={handleClickStar}
-                    />
-                  )}
-                  <div ref={ref}></div>
-                </React.Fragment>
-              ))}
+            {posts.map((post: any) => (
+              <React.Fragment key={post._id}>
+                {post && currentPage === 'Scrape' ? (
+                  <ScrapePost
+                    post={post}
+                    scrapeList={scrapeList}
+                    handleClickStar={handleClickStar}
+                  />
+                ) : (
+                  <PostList
+                    post={post}
+                    scrapeList={scrapeList}
+                    handleClickStar={handleClickStar}
+                  />
+                )}
+                <div ref={ref}></div>
+              </React.Fragment>
+            ))}
           </ul>
         </div>
       </Container>
