@@ -1,5 +1,4 @@
-import { useQuery } from '@tanstack/react-query';
-import { getPost } from 'api/getPost';
+import React, { useMemo } from 'react';
 import Container from 'components/Container';
 import Loading from 'components/Loading';
 import Error from 'components/Error';
@@ -11,7 +10,10 @@ import PostList from 'components/PostList';
 import ScrapePost from 'components/ScrapePost';
 import inactiveScrapeIcon from 'assets/inactive/inactiveScrape_Icon.png';
 import Button from 'components/Button';
-import { useGetInfinitePost, useGetPost } from 'hooks/useGetPost';
+import useIntersection from 'hooks/useIntersection';
+import { useGetInfinitePost } from 'hooks/useGetPost';
+import { getItem, setItem } from 'libs/getStorageData';
+import { getPost } from 'api/getPost';
 
 const Post = ({
   currentPage,
@@ -20,51 +22,47 @@ const Post = ({
   currentPage: 'Home' | 'Scrape';
   handleChangePage: (value: string) => void;
 }) => {
-  const [scrapeList, setScrapeList] = useState<string[]>([]);
-  let initFilter: filterProps | null | undefined = getFilter(currentPage);
+  let isScrape = getItem('scrapeList');
+  const [scrapeList, setScrapeList] = useState<string[]>(isScrape);
+  const [page, setPage] = useState<number>(0);
+  console.log('🚀 ~ file: Post.tsx:27 ~ page:', page);
+
+  const initFilter: filterProps | null | undefined = getFilter(currentPage);
 
   const [filter, setFilter] = useState(initFilter);
-  /* 
-  const { status, data, error } = useGetPost(
+
+  /* const { data, status, error } = useGetPost(
     filter?.q,
     filter?.period,
-    filter?.glocations
+    filter?.glocations,
+    page
+  ); */
+
+  const { hasNextPage, isFetching, fetchNextPage, ...result } =
+    useGetInfinitePost(filter?.q, filter?.period, filter?.glocations, page);
+
+  console.log('🚀 ~ file: Post.tsx:42 ~ result:', result.data);
+  const posts = useMemo(
+    () => (result.data ? result.data.pages.flatMap(({ docs }) => docs) : []),
+    [result.data]
   );
- */
-  const {
-    status,
-    data,
-    error,
-    fetchNextPage,
-    hasNextPage,
-    isFetchingNextPage,
-  } = useGetInfinitePost(filter?.q, filter?.period, filter?.glocations);
-  console.log('🚀 ~ file: Post.tsx:35 ~ data:', data);
 
-  let fetching = false;
+  const ref = useIntersection((entry, observer) => {
+    observer.unobserve(entry.target);
 
-  const handleScroll = async (e: any) => {
-    console.log('🚀 ~ file: Post.tsx:61 ~ handleScroll ~ e:', e);
-    const { scrollHeight, scrollTop, clientHeight } = e.target.scrollingElement;
-    if (!fetching && scrollHeight - scrollTop <= clientHeight * 1.2) {
-      fetching = true;
-      if (hasNextPage) await fetchNextPage();
-      fetching = false;
-    }
-  };
+    setPage((prev) => prev + 1);
+  });
 
   useEffect(() => {
-    let isScrape = localStorage.getItem('scrapeList');
-    if (!isScrape) {
-      localStorage.setItem('scrapeList', JSON.stringify([]));
-      isScrape = localStorage.getItem('scrapeList');
+    if (isScrape === null) {
+      setItem('scrapeList', []);
+      setScrapeList(isScrape);
     }
-    isScrape && setScrapeList(JSON.parse(isScrape));
 
-    const updatedFilter = getFilter(currentPage);
-    if (filter !== initFilter) return setFilter(updatedFilter);
-
-    /* infiniteScroll */
+    if (filter !== initFilter) {
+      const updatedFilter = getFilter(currentPage);
+      return setFilter(updatedFilter);
+    }
   }, []);
 
   const handleClickStar = (id: string) => {
@@ -77,13 +75,13 @@ const Post = ({
       toast.success('스크랩이 완료되었습니다.');
     }
 
-    localStorage.setItem('scrapeList', JSON.stringify(updatedList));
+    setItem('scrapeList', updatedList);
     setScrapeList(updatedList);
   };
 
-  if (status === 'error') return <Error error={error} />;
+  if (result.status === 'error') return <Error error={result.error} />;
 
-  if (status === 'loading') return <Loading />;
+  if (result.status === 'loading') return <Loading />;
 
   if (currentPage === 'Scrape' && scrapeList.length === 0)
     return (
@@ -102,7 +100,7 @@ const Post = ({
       </Container>
     );
 
-  if (!data)
+  if (!result.data)
     return (
       <Container>
         <div className='w-full h-full p-5 flex-grow flex justify-center items-center'>
@@ -113,29 +111,28 @@ const Post = ({
 
   return (
     <>
-      <Container onScroll={handleScroll}>
+      <Container>
         <div className='flex justify-center items-center'>
           <ul className='w-full h-full flex flex-col gap-2 p-5 flex-grow'>
-            {status === 'success' &&
-              data.pages.map((page) =>
-                page.map((post: any) => (
-                  <>
-                    {post && currentPage === 'Scrape' ? (
-                      <ScrapePost
-                        post={post}
-                        scrapeList={scrapeList}
-                        handleClickStar={handleClickStar}
-                      />
-                    ) : (
-                      <PostList
-                        post={post}
-                        scrapeList={scrapeList}
-                        handleClickStar={handleClickStar}
-                      />
-                    )}
-                  </>
-                ))
-              )}
+            {result.status === 'success' &&
+              posts.map((post: any) => (
+                <React.Fragment key={post._id}>
+                  {post && currentPage === 'Scrape' ? (
+                    <ScrapePost
+                      post={post}
+                      scrapeList={scrapeList}
+                      handleClickStar={handleClickStar}
+                    />
+                  ) : (
+                    <PostList
+                      post={post}
+                      scrapeList={scrapeList}
+                      handleClickStar={handleClickStar}
+                    />
+                  )}
+                  <div ref={ref}></div>
+                </React.Fragment>
+              ))}
           </ul>
         </div>
       </Container>
