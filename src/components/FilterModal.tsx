@@ -1,9 +1,10 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import dateIcon from 'assets/inactive/date_gray.png';
 import DateFormat from 'libs/DateFormat';
 import { CountryOption } from './CountryOptionList';
 import Button from './Button';
 import { setItem } from 'libs/getStorageData';
+import getFilter from 'libs/getFilter';
 
 export interface filterProps {
   q?: string;
@@ -39,6 +40,16 @@ const FilterModal = ({
     setModalOpen(false);
   };
 
+  const currentFilter = getFilter(currentPage);
+  useEffect(() => {
+    if (!currentFilter) {
+      setItem(currentPage === 'Home' ? 'HomeFilter' : 'ScrapeFilter', {
+        q: '',
+        period: '',
+        glocations: [],
+      });
+    }
+  }, [currentFilter]);
   const handleChecked = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
