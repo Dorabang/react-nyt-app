@@ -1,5 +1,7 @@
 # react-nyt-app
+🚀 : [배포 홈페이지 바로가기](https://react-nyt-app.vercel.app/)
 
+<br />
 
 ## 목차
 
