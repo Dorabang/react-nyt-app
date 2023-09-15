@@ -8,7 +8,6 @@ const DefaultPost = () => {
 
   const { data, status, error, hasNextPage, fetchNextPage } =
     useGetDefaultPost(page);
-  console.log('🚀 ~ file: DefaultPost.tsx:10 ~ DefaultPost ~ data:', data);
 
   return (
     <>
