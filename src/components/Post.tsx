@@ -34,10 +34,16 @@ const Post = ({
   const [page, setPage] = useRecoilState(paginationState);
   const [currentPage, setCurrentPage] = useRecoilState(currentPageState);
 
+  console.log('data', data);
+
   const posts = useMemo(
-    () => (data ? data.pages.flatMap(({ docs }) => docs) : []),
+    () =>
+      data
+        ? data.pages.flatMap(({ docs }, idx) => (idx !== 1 ? docs : []))
+        : [],
     [data]
   );
+  console.log('🚀 ~ file: Post.tsx:44 ~ posts:', posts);
 
   const [ref, inView] = useInView();
 
@@ -119,9 +125,9 @@ const Post = ({
                     handleClickStar={handleClickStar}
                   />
                 )}
-                <div ref={ref}></div>
               </React.Fragment>
             ))}
+            <div ref={ref}></div>
           </ul>
         </div>
       </Container>

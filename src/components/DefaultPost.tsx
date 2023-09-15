@@ -1,16 +1,14 @@
 import { useGetDefaultPost } from 'hooks/useGetPost';
 import { useRecoilValue } from 'recoil';
-import { currentPageState, paginationState } from 'recoil/atom';
+import { paginationState } from 'recoil/atom';
 import Post from './Post';
 
 const DefaultPost = () => {
-  const CurrentPage = useRecoilValue(currentPageState);
   const page = useRecoilValue(paginationState);
 
-  const { data, status, error, hasNextPage, fetchNextPage } = useGetDefaultPost(
-    CurrentPage,
-    page
-  );
+  const { data, status, error, hasNextPage, fetchNextPage } =
+    useGetDefaultPost(page);
+  console.log('🚀 ~ file: DefaultPost.tsx:10 ~ DefaultPost ~ data:', data);
 
   return (
     <>
