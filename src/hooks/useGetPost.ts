@@ -1,26 +1,44 @@
 import { useInfiniteQuery, useQueryClient } from '@tanstack/react-query';
-import { getInfinitePost } from 'api/getPost';
-import { queryPostKey } from 'constants/QueryKey';
+import { getDefaultPost, getFilteredPost } from 'api/getPost';
+import { queryDefaultPostKey, queryFilteredPostKey } from 'constants/QueryKey';
 
-export const useGetInfinitePost = (
+export const useGetDefaultPost = (
   currentPage: 'Home' | 'Scrape',
   page: number = 0
 ) => {
   const queryClient = useQueryClient();
-
-  queryClient.invalidateQueries({ queryKey: queryPostKey });
-
+  console.log('defaultPost');
   return useInfiniteQuery(
-    queryPostKey,
-    ({ pageParam = 0 }) => getInfinitePost(currentPage, page),
+    queryDefaultPostKey,
+    ({ pageParam }) => getDefaultPost(currentPage, page),
     {
       getNextPageParam: (lastPage) =>
         lastPage?.meta?.offset > lastPage?.meta?.hits
           ? undefined
           : lastPage?.meta?.offset + 1,
       staleTime: 1000 * 12,
-      onSuccess: () =>
-        queryClient.invalidateQueries({ queryKey: queryPostKey, exact: true }),
+      refetchOnWindowFocus: false,
+    }
+  );
+};
+
+export const useGetFilteredPost = (
+  currentPage: 'Home' | 'Scrape',
+  page: number = 0
+) => {
+  const queryClient = useQueryClient();
+  console.log('filteredPost');
+
+  return useInfiniteQuery(
+    queryFilteredPostKey,
+    ({ pageParam }) => getFilteredPost(currentPage, page),
+    {
+      getNextPageParam: (lastPage) =>
+        lastPage?.meta?.offset > lastPage?.meta?.hits
+          ? undefined
+          : lastPage?.meta?.offset + 1,
+      staleTime: 1000 * 12,
+      refetchOnWindowFocus: false,
     }
   );
 };

@@ -2,9 +2,10 @@ import React, { useMemo } from 'react';
 import { useEffect, useState } from 'react';
 import { toast } from 'react-toastify';
 import inactiveScrapeIcon from 'assets/inactive/inactiveScrape_Icon.png';
-import { useGetInfinitePost } from 'hooks/useGetPost';
 import { getItem, setItem } from 'libs/getStorageData';
 import { useInView } from 'react-intersection-observer';
+import { useRecoilState } from 'recoil';
+import { currentPageState, paginationState } from 'recoil/atom';
 
 /* components */
 import ScrapePost from 'components/ScrapePost';
@@ -13,24 +14,25 @@ import Button from 'components/Button';
 import Container from 'components/Container';
 import Loading from 'components/Loading';
 import Error from 'components/Error';
+import { FetchNextPageOptions, InfiniteData } from '@tanstack/react-query';
 
 const Post = ({
-  currentPage,
-  handleChangePage,
+  data,
+  status,
+  error,
+  hasNextPage,
+  fetchNextPage,
 }: {
-  currentPage: 'Home' | 'Scrape';
-  handleChangePage: (value: string) => void;
+  data: InfiniteData<any> | undefined;
+  status: 'error' | 'loading' | 'success';
+  error: unknown;
+  hasNextPage: boolean | undefined;
+  fetchNextPage: (options?: FetchNextPageOptions | undefined) => Promise<any>;
 }) => {
   let isScrape = getItem('scrapeList');
   const [scrapeList, setScrapeList] = useState<string[]>(isScrape);
-  const [page, setPage] = useState<number>(0);
-  console.log('🚀 ~ file: Post.tsx:27 ~ page:', page);
-  /* 
-  const { data, status, error } = useGetPost(currentPage, page);
-   */
-
-  const { data, status, error, hasNextPage, fetchNextPage } =
-    useGetInfinitePost(currentPage, page);
+  const [page, setPage] = useRecoilState(paginationState);
+  const [currentPage, setCurrentPage] = useRecoilState(currentPageState);
 
   const posts = useMemo(
     () => (data ? data.pages.flatMap(({ docs }) => docs) : []),
@@ -80,7 +82,7 @@ const Post = ({
               <img src={inactiveScrapeIcon} alt='스크랩 아이콘' />
             </div>
             <p className='pt-2 pb-5 text-black-80'>저장된 스크랩이 없습니다.</p>
-            <div onClick={() => handleChangePage('홈')} className='w-full px-5'>
+            <div onClick={() => setCurrentPage('Home')} className='w-full px-5'>
               <Button value='스크랩 하러 가기' />
             </div>
           </div>
@@ -88,7 +90,7 @@ const Post = ({
       </Container>
     );
 
-  if (!data)
+  if (data && !data.pages[0].docs)
     return (
       <Container>
         <div className='w-full h-full p-5 flex-grow flex justify-center items-center'>

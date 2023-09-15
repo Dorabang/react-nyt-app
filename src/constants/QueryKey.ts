@@ -1,1 +1,2 @@
-export const queryPostKey = ['post'];
+export const queryDefaultPostKey = ['defaultPost'];
+export const queryFilteredPostKey = ['filteredPost'];
