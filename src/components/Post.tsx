@@ -34,8 +34,6 @@ const Post = ({
   const [page, setPage] = useRecoilState(paginationState);
   const [currentPage, setCurrentPage] = useRecoilState(currentPageState);
 
-  console.log('data', data);
-
   const posts = useMemo(
     () =>
       data
@@ -43,7 +41,6 @@ const Post = ({
         : [],
     [data]
   );
-  console.log('🚀 ~ file: Post.tsx:44 ~ posts:', posts);
 
   const [ref, inView] = useInView();
 
