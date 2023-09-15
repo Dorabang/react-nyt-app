@@ -2,14 +2,21 @@ import React, { useEffect, useRef, useState } from 'react';
 import Header from 'components/Header';
 import StatusBar from 'assets/Status_Bar.png';
 import Filter from 'components/Filter';
-import FilterModal from 'components/FilterModal';
+import FilterModal, { filterProps } from 'components/FilterModal';
 import useOnClickOutside from 'hooks/useOnClickOutside';
 import ToastProvider from 'components/ToastProvider';
-import Post from 'components/Post';
+import { setItem } from 'libs/getStorageData';
+import { useRecoilState } from 'recoil';
+import { currentPageState } from 'recoil/atom';
+import FilteredPost from 'components/FilteredPost';
+import DefaultPost from 'components/DefaultPost';
+import getFilter from 'libs/getFilter';
 
 function App() {
-  const [currentPage, setCurrentPage] = useState<'Home' | 'Scrape'>('Home');
+  const [currentPage, setCurrentPage] = useRecoilState(currentPageState);
   const [modalOpen, setModalOpen] = useState<boolean>(false);
+
+  const filter: filterProps | null | undefined = getFilter(currentPage);
 
   const ref = useRef<HTMLDivElement>(null);
 
@@ -23,8 +30,8 @@ function App() {
 
   useEffect(() => {
     /* routing */
-    localStorage.setItem('page', JSON.stringify(currentPage));
-  }, [currentPage]);
+    setItem('page', currentPage);
+  }, [currentPage, filter]);
 
   return (
     <div className='w-screen h-screen flex justify-center items-center'>
@@ -47,7 +54,12 @@ function App() {
           currentPage={currentPage}
           setModalOpen={(e) => setModalOpen(e)}
         />
-        <Post currentPage={currentPage} />
+
+        {!filter?.q && !filter?.period && filter?.glocations?.length === 0 ? (
+          <DefaultPost />
+        ) : (
+          <FilteredPost />
+        )}
         <Header handleChangePage={handleChangePage} currentPage={currentPage} />
       </div>
     </div>

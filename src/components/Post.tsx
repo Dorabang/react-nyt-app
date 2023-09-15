@@ -1,31 +1,65 @@
-import { useQuery } from '@tanstack/react-query';
-import { getPost } from 'api/getPost';
-import Container from 'components/Container';
-import Loading from './Loading';
-import Error from './Error';
+import React, { useMemo } from 'react';
 import { useEffect, useState } from 'react';
 import { toast } from 'react-toastify';
-import getFilter from 'libs/getFilter';
-import { filterProps } from './FilterModal';
-import PostList from './PostList';
-import ScrapePost from './ScrapePost';
+import inactiveScrapeIcon from 'assets/inactive/inactiveScrape_Icon.png';
+import { getItem, setItem } from 'libs/getStorageData';
+import { useInView } from 'react-intersection-observer';
+import { useRecoilState } from 'recoil';
+import { currentPageState, paginationState } from 'recoil/atom';
 
-const Post = ({ currentPage }: { currentPage: 'Home' | 'Scrape' }) => {
-  const [scrapeList, setScrapeList] = useState<string[]>([]);
+/* components */
+import ScrapePost from 'components/ScrapePost';
+import PostList from 'components/PostList';
+import Button from 'components/Button';
+import Container from 'components/Container';
+import Loading from 'components/Loading';
+import Error from 'components/Error';
+import { FetchNextPageOptions, InfiniteData } from '@tanstack/react-query';
 
-  const filter: filterProps | null | undefined = getFilter(currentPage);
+const Post = ({
+  data,
+  status,
+  error,
+  hasNextPage,
+  fetchNextPage,
+}: {
+  data: InfiniteData<any> | undefined;
+  status: 'error' | 'loading' | 'success';
+  error: unknown;
+  hasNextPage: boolean | undefined;
+  fetchNextPage: (options?: FetchNextPageOptions | undefined) => Promise<any>;
+}) => {
+  let isScrape = getItem('scrapeList');
+  const [scrapeList, setScrapeList] = useState<string[]>(isScrape);
+  const [page, setPage] = useRecoilState(paginationState);
+  const [currentPage, setCurrentPage] = useRecoilState(currentPageState);
 
-  const query = filter?.q ? filter?.q : '';
-  const period = filter?.period ? filter?.period : '';
-  const country = filter?.glocations ? filter?.glocations : '';
+  console.log('data', data);
 
-  const { status, data, error } = useQuery<any[] | undefined>({
-    queryKey: ['post'],
-    queryFn: () =>
-      getPost(query, `pub_date=("${period}")`, `glocations=("${country}")`),
-    staleTime: 2000,
-  });
-  console.log('🚀 ~ file: Post.tsx:27 ~ Post ~ data:', data);
+  const posts = useMemo(
+    () =>
+      data
+        ? data.pages.flatMap(({ docs }, idx) => (idx !== 1 ? docs : []))
+        : [],
+    [data]
+  );
+  console.log('🚀 ~ file: Post.tsx:44 ~ posts:', posts);
+
+  const [ref, inView] = useInView();
+
+  useEffect(() => {
+    if (isScrape === null) {
+      setItem('scrapeList', []);
+      setScrapeList(isScrape);
+    }
+  }, [isScrape]);
+
+  useEffect(() => {
+    if (inView && hasNextPage) {
+      fetchNextPage();
+      setPage(page + 1);
+    }
+  }, [inView, hasNextPage]);
 
   const handleClickStar = (id: string) => {
     let updatedList;
@@ -37,33 +71,47 @@ const Post = ({ currentPage }: { currentPage: 'Home' | 'Scrape' }) => {
       toast.success('스크랩이 완료되었습니다.');
     }
 
-    localStorage.setItem('scrapeList', JSON.stringify(updatedList));
+    setItem('scrapeList', updatedList);
     setScrapeList(updatedList);
   };
-
-  useEffect(() => {
-    let isScrape = localStorage.getItem('scrapeList');
-    if (!isScrape) {
-      localStorage.setItem('scrapeList', JSON.stringify([]));
-      isScrape = localStorage.getItem('scrapeList');
-    }
-    isScrape && setScrapeList(JSON.parse(isScrape));
-  }, []);
 
   if (status === 'error') return <Error error={error} />;
 
   if (status === 'loading') return <Loading />;
 
+  if (currentPage === 'Scrape' && scrapeList.length === 0)
+    return (
+      <Container>
+        <div className='w-full h-full p-5 flex-grow flex justify-center items-center'>
+          <div className='flex flex-col justify-center items-center w-full h-full'>
+            <div className='w-9 h-9'>
+              <img src={inactiveScrapeIcon} alt='스크랩 아이콘' />
+            </div>
+            <p className='pt-2 pb-5 text-black-80'>저장된 스크랩이 없습니다.</p>
+            <div onClick={() => setCurrentPage('Home')} className='w-full px-5'>
+              <Button value='스크랩 하러 가기' />
+            </div>
+          </div>
+        </div>
+      </Container>
+    );
+
+  if (data && !data.pages[0].docs)
+    return (
+      <Container>
+        <div className='w-full h-full p-5 flex-grow flex justify-center items-center'>
+          <p className='text-black-80'>검색 결과를 찾을 수 없습니다.</p>
+        </div>
+      </Container>
+    );
+
   return (
     <>
       <Container>
-        <ul className='w-full h-full flex flex-col gap-2 p-5 flex-grow'>
-          {data &&
-            data.map((post: any) => (
-              <li
-                key={post._id}
-                className='w-full bg-white rounded-lg px-5 py-[10px]'
-              >
+        <div className='flex justify-center items-center'>
+          <ul className='w-full h-full flex flex-col gap-2 p-5 flex-grow'>
+            {posts.map((post: any) => (
+              <React.Fragment key={post._id}>
                 {post && currentPage === 'Scrape' ? (
                   <ScrapePost
                     post={post}
@@ -77,9 +125,11 @@ const Post = ({ currentPage }: { currentPage: 'Home' | 'Scrape' }) => {
                     handleClickStar={handleClickStar}
                   />
                 )}
-              </li>
+              </React.Fragment>
             ))}
-        </ul>
+            <div ref={ref}></div>
+          </ul>
+        </div>
       </Container>
     </>
   );

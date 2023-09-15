@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
 import dateIcon from 'assets/inactive/date_gray.png';
 import DateFormat from 'libs/DateFormat';
-import uuid from 'react-uuid';
 import { CountryOption } from './CountryOptionList';
+import Button from './Button';
+import { setItem } from 'libs/getStorageData';
 
 export interface filterProps {
-  id: string;
   q?: string;
   period?: string;
   glocations?: string[];
@@ -30,12 +30,11 @@ const FilterModal = ({
     const storageKey = currentPage === 'Home' ? 'HomeFilter' : 'ScrapeFilter';
 
     const filter: filterProps = {
-      id: uuid(),
       q: searchValue,
       period: dateValue,
       glocations: countryValue,
     };
-    localStorage.setItem(storageKey, JSON.stringify(filter));
+    setItem(storageKey, filter);
 
     setModalOpen(false);
   };
@@ -97,6 +96,7 @@ const FilterModal = ({
       </Heading>
       <Heading title='국가'>
         <form
+          id='country'
           className='flex flex-wrap gap-2'
           onChange={(e) => handleChecked(e)}
         >
@@ -104,14 +104,9 @@ const FilterModal = ({
         </form>
       </Heading>
       <div className='p-5'>
-        <input
-          type='submit'
-          value='필터 적용하기'
-          onClick={() => handleClick(headline, date, country)}
-          className='w-full py-[18px] text-center text-white rounded-2xl
-          bg-main-blue hover:bg-opacity-90 transition-colors
-          cursor-pointer'
-        />
+        <div onClick={() => handleClick(headline, date, country)}>
+          <Button value='필터 적용하기' />
+        </div>
       </div>
     </div>
   );
